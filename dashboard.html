@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AV win Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: #8c9099; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 414px; background-color: #f7f8ff; min-height: 100vh; position: relative; padding-bottom: 70px; overflow-x: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.3); }
+        .header { background: #ff575c; color: white; display: flex; justify-content: space-between; align-items: center; padding: 15px; font-weight: bold; font-size: 18px; }
+        .header-logo { display: flex; align-items: center; gap: 5px; }
+        .banner { background: linear-gradient(135deg, #ff416c, #ff4b2b); margin: 15px; height: 120px; border-radius: 12px; color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .wallet-card { background: white; margin: 0 15px 15px 15px; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .wallet-title { color: #666; font-size: 13px; margin-bottom: 5px; }
+        .wallet-balance { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 15px; }
+        .wallet-buttons { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 10px; border: none; border-radius: 20px; color: white; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-withdraw { background: linear-gradient(90deg, #ffb347, #ff7b00); }
+        .btn-deposit { background: linear-gradient(90deg, #ff416c, #ff4b2b); }
+        .action-grid { display: flex; gap: 10px; margin: 0 15px 15px 15px; }
+        .action-card { flex: 1; padding: 15px 10px; border-radius: 12px; color: white; font-weight: bold; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+        .card-wheel { background: linear-gradient(135deg, #ff7e5f, #feb47b); }
+        .card-vip { background: linear-gradient(135deg, #c94b4b, #4b134f); }
+        .category-menu { display: flex; overflow-x: auto; gap: 20px; padding: 10px 15px; background: white; border-bottom: 1px solid #eee; margin-bottom: 15px; scrollbar-width: none; }
+        .category-menu::-webkit-scrollbar { display: none; }
+        .category-item { display: flex; align-items: center; gap: 5px; color: #666; font-size: 14px; white-space: nowrap; }
+        .category-item.active { color: #ff575c; font-weight: bold; }
+        .lottery-section { padding: 0 15px; }
+        .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .section-header h3 { font-size: 16px; color: #333; }
+        .game-card { height: 120px; border-radius: 15px; margin-bottom: 15px; padding: 20px; color: white; font-size: 22px; font-weight: 900; display: flex; align-items: center; cursor: pointer; }
+        .game-wingo { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .game-k3 { background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%); }
+        .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 414px; height: 65px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #999; font-size: 12px; gap: 4px; cursor: pointer; }
+        .nav-item.active { color: #ff575c; }
+        .nav-icon { font-size: 22px; }
+
+        /* Modal CSS for Deposit */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 15px; width: 90%; max-width: 350px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-close { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
+        .modal-title { margin-bottom: 10px; font-size: 20px; text-align: center; color: #333; }
+        .modal-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; }
+        .modal-btn { width: 100%; padding: 12px; background: linear-gradient(90deg, #ff416c, #ff4b2b); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .modal-msg { text-align: center; font-size: 14px; margin-top: 10px; font-weight: bold; }
+        .referral-box { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; font-size: 13px; color: #666; }
+        .invite-code { font-size: 18px; font-weight: bold; color: #ff575c; margin-top: 5px; letter-spacing: 2px; }
+        .history-item { background: #f9f9f9; border-radius: 8px; padding: 12px; margin-bottom: 10px; border: 1px solid #eee; font-size: 14px; text-align: left; }
+        .history-item.Pending { border-left: 4px solid #ffb347; }
+        .history-item.Approved { border-left: 4px solid #3fb558; }
+        .history-item.Rejected { border-left: 4px solid #ff416c; }
+        .history-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; color: #333; }
+        .history-date { font-size: 12px; color: #999; margin-bottom: 5px; }
+        .history-status { font-weight: bold; }
+        .status-Pending { color: #ffb347; }
+        .status-Approved { color: #3fb558; }
+        .status-Rejected { color: #ff416c; }
+        .history-empty { text-align: center; color: #999; padding: 20px 0; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Deposit Modal -->
+        <div class="modal-overlay" id="depositModal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeDepositModal()">×</span>
+                <h3 class="modal-title">Deposit Money</h3>
+                <div style="text-align: right; margin-bottom: 10px;">
+                    <a href="#" onclick="openHistoryModal('Deposit')" style="font-size: 14px; color: #ff575c; text-decoration: none; font-weight: bold;">📜 Deposit History</a>
+                </div>
+                <div style="text-align:center; margin-bottom: 15px;">
+                    <img src="assets/IMG_20260927_105346.jpg" alt="UPI QR Code" style="width: 150px; height: 150px; object-fit: contain; border: 2px solid #ccc; border-radius: 8px; padding: 5px;">
+                    <div style="margin-top: 5px; font-weight: bold; color: #ff575c; font-size: 14px;">UPI ID: 8534929449@mbk</div>
+                </div>
+                <p style="font-size:12px; color:#666; text-align:center; margin-bottom:20px;">Scan QR or copy UPI ID to Pay & enter UTR below</p>
+                <form id="depositForm">
+                    <input type="number" id="depositAmount" class="modal-input" placeholder="Enter Amount (₹)" required>
+                    <input type="text" id="utrNumber" class="modal-input" placeholder="Enter 12-digit UTR No." required minlength="12" maxlength="12">
+                    <button type="submit" class="modal-btn">Submit Request</button>
+                </form>
+                <div id="depositMsg" class="modal-msg"></div>
+            </div>
+        </div>
+
+        <!-- Withdrawal Modal -->
+        <div class="modal-overlay" id="withdrawModal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeWithdrawModal()">×</span>
+                <h3 class="modal-title">Withdraw Money</h3>
+                <div style="text-align: right; margin-bottom: 10px;">
+                    <a href="#" onclick="openHistoryModal('Withdrawal')" style="font-size: 14px; color: #ffb347; text-decoration: none; font-weight: bold;">📜 Withdrawal History</a>
+                </div>
+                <p style="font-size:12px; color:#666; text-align:center; margin-bottom:20px;">Enter Amount to Withdraw</p>
+                <form id="withdrawForm">
+                    <input type="number" id="withdrawAmount" class="modal-input" placeholder="Enter Amount (₹)" required>
+                    <button type="submit" class="modal-btn" style="background: linear-gradient(90deg, #ffb347, #ff7b00);">Withdraw Funds</button>
+                </form>
+                <div id="withdrawMsg" class="modal-msg"></div>
+            </div>
+        </div>
+
+        <!-- Add Bank Modal -->
+        <div class="modal-overlay" id="addBankModal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeAddBankModal()">×</span>
+                <h3 class="modal-title">Bind Bank/UPI</h3>
+                <p style="font-size:12px; color:#ff575c; text-align:center; margin-bottom:20px;">You must bind a Bank Account or UPI to withdraw funds.</p>
+                <form id="addBankForm">
+                    <input type="text" id="newBankDetails" class="modal-input" placeholder="Enter Bank A/C No. or UPI ID" required>
+                    <button type="submit" class="modal-btn" style="background: linear-gradient(90deg, #3fb558, #2e9143);">Save Bank Details</button>
+                </form>
+                <div id="addBankMsg" class="modal-msg"></div>
+            </div>
+        </div>
+
+        <!-- Agency Center Modal -->
+        <div class="modal-overlay" id="agencyModal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeAgencyModal()">×</span>
+                <h3 class="modal-title">💼 Agency Center</h3>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 14px; color: #666;">Total Unclaimed Commission</div>
+                    <div id="agencyCommissionAmount" style="font-size: 32px; font-weight: bold; color: #3fb558;">₹0.00</div>
+                    <div style="font-size: 12px; color: #999; margin-top: 5px;">Earn 1% from Level 1, 0.5% from Level 2 bets</div>
+                </div>
+                <button type="button" class="modal-btn" id="claimCommissionBtn" onclick="claimCommission()">Claim to Wallet</button>
+                <div id="agencyMsg" class="modal-msg"></div>
+            </div>
+        </div>
+
+        <!-- History Modal -->
+        <div class="modal-overlay" id="historyModal">
+            <div class="modal-content" style="max-height: 80vh; display: flex; flex-direction: column;">
+                <span class="modal-close" onclick="closeHistoryModal()">×</span>
+                <h3 class="modal-title" id="historyModalTitle">History</h3>
+                <div id="historyContainer" style="margin-top: 15px; overflow-y: auto; flex: 1;">
+                    <!-- History items will be injected here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="header">
+            <div class="header-logo">🛡️ AV win</div>
+            <div>🇺🇸 EN</div>
+        </div>
+        <div class="banner"><h3>Boost your Deposit to Earn</h3></div>
+        <div class="wallet-card">
+            <div class="wallet-title">🟡 Wallet balance</div>
+            <div class="wallet-balance" id="mainWalletBalance">₹0.00 🔄</div>
+            <div class="wallet-buttons">
+                <button class="btn btn-withdraw" onclick="openWithdrawModal()">⬆️ Withdraw</button>
+                <button class="btn btn-deposit" onclick="openDepositModal()">⬇️ Deposit</button>
+            </div>
+            <div class="referral-box">
+                <div>Your Invite Code:</div>
+                <div class="invite-code" id="userInviteCode">LOADING...</div>
+                <div style="margin-top: 10px; display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-deposit" style="flex: 1; font-size: 12px; padding: 5px;" onclick="copyReferralLink()">📋 Copy Link</button>
+                    <button class="btn" style="flex: 1; font-size: 12px; padding: 5px; background: #25D366; color: white; border: none; border-radius: 5px;" onclick="shareWhatsApp()">📱 WhatsApp</button>
+                </div>
+                <div style="font-size:11px; margin-top:5px;">Share with friends to earn commission!</div>
+            </div>
+        </div>
+        <div class="action-grid">
+            <div class="action-card card-wheel" onclick="dailyCheckIn()">🎁 Daily Bonus</div>
+            <div class="action-card card-vip" onclick="openAgencyModal()">💼 Agency Center</div>
+        </div>
+        <div class="category-menu">
+            <div class="category-item active">🔴 Lobby</div>
+            <div class="category-item">🎮 Mini game</div>
+            <div class="category-item">🎰 Slots</div>
+            <div class="category-item">🃏 Card</div>
+            <div class="category-item">🎣 Fishing</div>
+        </div>
+        <div class="lottery-section">
+            <div class="section-header">
+                <span style="background:#ff575c; color:white; border-radius:50%; width:24px; height:24px; display:inline-flex; align-items:center; justify-content:center; font-size:12px;">8</span>
+                <h3>Lottery</h3>
+            </div>
+            <div class="game-card game-wingo" onclick="window.location.href='wingo.html'">WIN GO</div>
+            <div class="game-card game-k3">K3</div>
+        </div>
+        <div class="bottom-nav">
+            <div class="nav-item active"><span class="nav-icon">🏠</span><span>Home</span></div>
+            <div class="nav-item"><span class="nav-icon">📊</span><span>Activity</span></div>
+            <a href="promotion.html" class="nav-item" style="text-decoration:none;"><span class="nav-icon">🎁</span><span>Promotion</span></a>
+            <div class="nav-item" onclick="logoutUser()"><span class="nav-icon">👤</span><span>Log Out</span></div>
+        </div>
+    </div>
+
+    <script>
+        let userSavedBank = null;
+
+        window.onload = async () => {
+            const userEmail = localStorage.getItem('loggedInEmail');
+            if (!userEmail) {
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                const response = await fetch(`/api/user/${userEmail}`);
+                const data = await response.json();
+                if (response.status === 200) {
+                    document.getElementById('mainWalletBalance').innerText = `₹${data.walletBalance.toFixed(2)} 🔄`;
+                    document.querySelector('.header-logo').innerText = `🛡️ ${data.username}'s Club`;
+                    document.getElementById('userInviteCode').innerText = data.inviteCode || 'N/A';
+                    userSavedBank = data.savedBankDetails || null;
+                }
+            } catch (error) {
+                console.log("Error fetching user data", error);
+            }
+        };
+
+        function logoutUser() {
+            localStorage.removeItem('loggedInEmail');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        // Deposit Modal Logic
+        function openDepositModal() {
+            document.getElementById('depositModal').style.display = 'flex';
+            document.getElementById('depositMsg').innerText = '';
+        }
+
+        function closeDepositModal() {
+            document.getElementById('depositModal').style.display = 'none';
+        }
+
+        document.getElementById('depositForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const amount = document.getElementById('depositAmount').value;
+            const utrNumber = document.getElementById('utrNumber').value;
+            const msgBox = document.getElementById('depositMsg');
+            const token = localStorage.getItem('token'); 
+
+            if (!token) {
+                msgBox.style.color = 'red';
+                msgBox.innerText = "Error: Please login first!";
+                return;
+            }
+
+            msgBox.style.color = '#ffb347';
+            msgBox.innerText = "Processing...";
+
+            try {
+                const response = await fetch('/api/user/deposit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ amount, utrNumber })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    msgBox.style.color = 'green';
+                    msgBox.innerText = data.message;
+                    document.getElementById('depositForm').reset();
+                    // Update balance instantly on screen
+                    if (data.newBalance !== undefined) {
+                        document.getElementById('mainWalletBalance').innerText = `₹${data.newBalance.toFixed(2)} 🔄`;
+                    }
+                    setTimeout(closeDepositModal, 2000);
+                } else {
+                    msgBox.style.color = 'red';
+                    msgBox.innerText = data.message;
+                }
+            } catch (error) {
+                msgBox.style.color = 'red';
+                msgBox.innerText = "Server connection failed!";
+            }
+        });
+
+        // Withdrawal Logic
+        function openWithdrawModal() {
+            if (!userSavedBank) {
+                document.getElementById('addBankModal').style.display = 'flex';
+                document.getElementById('addBankMsg').innerText = '';
+            } else {
+                document.getElementById('withdrawModal').style.display = 'flex';
+                document.getElementById('withdrawMsg').innerText = '';
+            }
+        }
+
+        function closeWithdrawModal() {
+            document.getElementById('withdrawModal').style.display = 'none';
+        }
+
+        function closeAddBankModal() {
+            document.getElementById('addBankModal').style.display = 'none';
+        }
+
+        document.getElementById('withdrawForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const amount = document.getElementById('withdrawAmount').value;
+            const msgBox = document.getElementById('withdrawMsg');
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                msgBox.style.color = 'red';
+                msgBox.innerText = "Error: Please login first!";
+                return;
+            }
+
+            msgBox.style.color = '#ffb347';
+            msgBox.innerText = "Processing...";
+
+            try {
+                const response = await fetch('/api/user/withdraw', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ amount })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    msgBox.style.color = 'green';
+                    msgBox.innerText = data.message;
+                    document.getElementById('withdrawForm').reset();
+                    if (data.newBalance !== undefined) {
+                        document.getElementById('mainWalletBalance').innerText = `₹${data.newBalance.toFixed(2)} 🔄`;
+                    }
+                    setTimeout(closeWithdrawModal, 2000);
+                } else {
+                    msgBox.style.color = 'red';
+                    msgBox.innerText = data.message;
+                }
+            } catch (error) {
+                msgBox.style.color = 'red';
+                msgBox.innerText = "Server connection failed!";
+            }
+        });
+
+        // Add Bank Form Logic
+        document.getElementById('addBankForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const bankDetails = document.getElementById('newBankDetails').value;
+            const msgBox = document.getElementById('addBankMsg');
+            const token = localStorage.getItem('token');
+
+            if (!token) return;
+
+            msgBox.style.color = '#ffb347';
+            msgBox.innerText = "Saving...";
+
+            try {
+                const response = await fetch('/api/user/add-bank', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ bankDetails })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    msgBox.style.color = 'green';
+                    msgBox.innerText = data.message;
+                    userSavedBank = bankDetails; // Update globally
+                    setTimeout(() => {
+                        closeAddBankModal();
+                        openWithdrawModal(); // Open withdrawal modal automatically now
+                    }, 1500);
+                } else {
+                    msgBox.style.color = 'red';
+                    msgBox.innerText = data.message;
+                }
+            } catch (error) {
+                msgBox.style.color = 'red';
+                msgBox.innerText = "Server connection failed!";
+            }
+        });
+
+        // Daily Check-in Logic
+        async function dailyCheckIn() {
+            const token = localStorage.getItem('token');
+            if (!token) return alert("Please login first!");
+
+            try {
+                const response = await fetch('/api/user/checkin', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    alert(data.message);
+                    if (data.walletBalance !== undefined) {
+                        document.getElementById('mainWalletBalance').innerText = `₹${data.walletBalance.toFixed(2)} 🔄`;
+                    }
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                alert("Failed to connect to the server.");
+            }
+        }
+
+        // Referral Sharing Logic
+        function getReferralUrl() {
+            const code = document.getElementById('userInviteCode').innerText;
+            if (code === 'LOADING...') return window.location.origin + '/index.html';
+            return window.location.origin + '/index.html?ref=' + code;
+        }
+
+        function copyReferralLink() {
+            const url = getReferralUrl();
+            navigator.clipboard.writeText(url).then(() => {
+                alert("Referral Link copied! Share it to get ₹20 bonus per friend.");
+            }).catch(err => {
+                alert("Failed to copy link.");
+            });
+        }
+
+        function shareWhatsApp() {
+            const url = getReferralUrl();
+            const text = encodeURIComponent(`Play & Earn! Use my invite code to get ₹20 instant signup bonus. Join now: ${url}`);
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+
+        // Agency Logic
+        async function openAgencyModal() {
+            document.getElementById('agencyModal').style.display = 'flex';
+            document.getElementById('agencyMsg').innerText = "Loading commission...";
+            document.getElementById('claimCommissionBtn').disabled = true;
+
+            const token = localStorage.getItem('token');
+            if(!token) return;
+            try {
+                const response = await fetch('/api/user/info', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if(response.ok) {
+                    const totalComm = (data.level1Commission || 0) + (data.level2Commission || 0);
+                    document.getElementById('agencyCommissionAmount').innerText = `₹${totalComm.toFixed(2)}`;
+                    document.getElementById('agencyMsg').innerText = "";
+                    document.getElementById('claimCommissionBtn').disabled = totalComm <= 0;
+                }
+            } catch(e) {
+                document.getElementById('agencyMsg').innerText = "Failed to load.";
+            }
+        }
+
+        function closeAgencyModal() {
+            document.getElementById('agencyModal').style.display = 'none';
+        }
+
+        async function claimCommission() {
+            const token = localStorage.getItem('token');
+            const msgBox = document.getElementById('agencyMsg');
+            msgBox.style.color = '#ffb347';
+            msgBox.innerText = "Claiming...";
+            try {
+                const response = await fetch('/api/user/claim-commission', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    msgBox.style.color = 'green';
+                    msgBox.innerText = data.message;
+                    document.getElementById('agencyCommissionAmount').innerText = "₹0.00";
+                    document.getElementById('claimCommissionBtn').disabled = true;
+                    if (data.walletBalance !== undefined) {
+                        document.getElementById('mainWalletBalance').innerText = `₹${data.walletBalance.toFixed(2)} 🔄`;
+                    }
+                } else {
+                    msgBox.style.color = 'red';
+                    msgBox.innerText = data.message;
+                }
+            } catch (e) {
+                msgBox.style.color = 'red';
+                msgBox.innerText = "Server error!";
+            }
+        }
+
+        // History Logic
+        function openHistoryModal(type) {
+            // Close other modals to avoid stacking mess
+            closeDepositModal();
+            closeWithdrawModal();
+
+            document.getElementById('historyModalTitle').innerText = `${type} History`;
+            document.getElementById('historyModal').style.display = 'flex';
+            fetchHistory(type);
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        async function fetchHistory(type) {
+            const container = document.getElementById('historyContainer');
+            container.innerHTML = '<div class="history-empty">Loading...</div>';
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                container.innerHTML = '<div class="history-empty" style="color:red;">Please login first!</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/transactions', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const filteredData = data.filter(item => item.type === type);
+                    
+                    if (filteredData.length === 0) {
+                        container.innerHTML = `<div class="history-empty">No ${type} history found.</div>`;
+                        return;
+                    }
+
+                    container.innerHTML = filteredData.map(tx => `
+                        <div class="history-item ${tx.status}">
+                            <div class="history-header">
+                                <span>₹${tx.amount.toFixed(2)}</span>
+                                <span class="history-status status-${tx.status}">${tx.status}</span>
+                            </div>
+                            <div class="history-date">${new Date(tx.date).toLocaleString()}</div>
+                            <div style="font-size: 12px; color: #666; word-break: break-all;">UTR/Details: ${tx.utr || 'N/A'}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = `<div class="history-empty" style="color:red;">${data.message || 'Error loading history'}</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = '<div class="history-empty" style="color:red;">Failed to load history.</div>';
+            }
+        }
+    </script>
+</body>
+</html>

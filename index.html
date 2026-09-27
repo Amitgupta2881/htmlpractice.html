@@ -3,30 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Practice html</title>
+    <title>Login & Sign Up</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 320px; }
+        h2 { text-align: center; color: #333; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background-color: #0056b3; }
+        .toggle-text { text-align: center; margin-top: 15px; font-size: 14px; }
+        .toggle-text span { color: #007bff; cursor: pointer; text-decoration: underline; }
+        #loginSection, #signupSection { display: none; }
+        .active { display: block !important; }
+    </style>
 </head>
 <body>
-    <h1>THIS IS MY FIRST WEBPAGE</h1>
-    <form>
-       <div id="my data" style="border: 2px solid black; height: 400px; width: 500px; border-radius: 8px;"><div style="border: 2px solid black; border-radius: 8px; height: 375px; width: 470px; margin-top: 10px;margin-left: 10px; margin-right: 10px; margin-bottom:20px ;"> 
-       <div style=""><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRMUhN9RWevZh9SUBbL2GlXA4HE8G-gpBK2IOfmw9rheQ&s=10"   height="375" width="470"></div> 
-       </div>
-       <div id="user input" style="margin-left: 10px; margin-right: 10px;">Name: <input type="text" placeholder="Enter your name">
-        email  <input type="email" placeholder="Enter your eamil"><br><br>
-        mobile: <input type="Number" placeholder="Enter your mobile">
-        Gender :  <input type="radio" placeholder="Enter your name" value="male">male
-         <input type="radio" placeholder="Enter your name" value="male">female<br><br>
-          Hobbies: <input type="checkbox" placeholder="Enter your mobile">cycling
-           <input type="checkbox" placeholder="Enter your mobile">gaming
-            <input type="checkbox" placeholder="Enter your mobile">cricket<br><br>
-            city: <select>
-                <option>Mathura</option>
-                <option>kosi</option>
-                <option>Delhi</option>
-                <option>Agra</option>
-            </select><br><br>
-            <button>sumbit</button></div> </div> 
-    </form>
-    <form
+    <div class="container">
+        <!-- LOGIN FORM -->
+        <div id="loginSection" class="active">
+            <h2>Log In</h2>
+            <form id="loginForm">
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">Log In</button>
+            </form>
+            <div class="toggle-text">
+                Don't have an account? <span onclick="toggleForms()">Sign Up</span>
+            </div>
+        </div>
+
+        <!-- SIGN UP FORM -->
+        <div id="signupSection">
+            <h2>Sign Up</h2>
+            <form id="signupForm">
+                <input type="text" id="signupUsername" placeholder="Username" required>
+                <input type="email" id="signupEmail" placeholder="Email" required>
+                <input type="password" id="signupPassword" placeholder="Password" required>
+                <input type="text" id="signupInviteCode" placeholder="Invite Code (Optional)">
+                <button type="submit" style="background-color: #28a745;">Sign Up</button>
+            </form>
+            <div class="toggle-text">
+                Already have an account? <span onclick="toggleForms()">Log In</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const ref = params.get('ref');
+            if (ref) {
+                document.getElementById('signupInviteCode').value = ref;
+                toggleForms(); // Optional: switch to sign up form automatically
+            }
+        };
+
+        function toggleForms() {
+            document.getElementById('loginSection').classList.toggle('active');
+            document.getElementById('signupSection').classList.toggle('active');
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await response.json();
+              
+                if (response.status === 200 && data.redirect) {
+                    localStorage.setItem('loggedInEmail', email);
+                    localStorage.setItem('token', data.token);
+                    window.location.href = data.redirectUrl;
+                } else {
+                    alert(data.message); 
+                }
+            } catch (error) {
+                alert("Server error. Make sure your Node server is running!");
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('signupUsername').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const inviteCode = document.getElementById('signupInviteCode').value;
+
+            try {
+                const response = await fetch('/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password, inviteCode })
+                });
+                const data = await response.json();
+                alert(data.message);
+                if (response.status === 201) toggleForms();
+            } catch (error) {
+                alert("Server error.");
+            }
+        });
+
+        // Auto-fill Invite Code from URL
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode) {
+                document.getElementById('signupInviteCode').value = refCode;
+                toggleForms(); // Automatically show the signup form
+            }
+        });
+    </script>
 </body>
 </html>

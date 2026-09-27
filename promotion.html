@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Promotion - AV win</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background-color: #8c9099; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 414px; background-color: #f7f8ff; min-height: 100vh; position: relative; padding-bottom: 70px; overflow-x: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.3); }
+        .header { background: #ff575c; color: white; display: flex; justify-content: center; align-items: center; padding: 15px; font-weight: bold; font-size: 18px; }
+        
+        .promo-banner { background: linear-gradient(135deg, #ff416c, #ff4b2b); padding: 30px 15px; text-align: center; color: white; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+        .promo-banner h2 { font-size: 32px; margin-bottom: 5px; }
+        .promo-banner p { font-size: 14px; opacity: 0.9; }
+
+        .card { background: white; margin: 15px; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; }
+        .card h3 { color: #333; font-size: 16px; margin-bottom: 15px; }
+        
+        .invite-section { background: #fdf5e6; padding: 15px; border-radius: 8px; border: 1px dashed #ffb347; margin-bottom: 15px; }
+        .invite-code { font-size: 24px; font-weight: bold; color: #ff575c; letter-spacing: 2px; margin: 10px 0; }
+        .invite-link { font-size: 12px; color: #666; word-break: break-all; margin-bottom: 10px; }
+        
+        .btn-copy { background: #ff575c; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-copy:active { transform: scale(0.95); }
+
+        .commission-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .comm-box { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .comm-title { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .comm-amount { font-size: 20px; font-weight: bold; color: #3fb558; }
+
+        .rules-box { text-align: left; font-size: 13px; color: #666; line-height: 1.5; }
+        .rules-box h4 { color: #333; margin-bottom: 10px; }
+        .rules-box li { margin-bottom: 8px; margin-left: 20px; }
+
+        /* Bottom Nav */
+        .bottom-nav { position: absolute; bottom: 0; left: 0; width: 100%; height: 65px; background: white; border-top: 1px solid #ddd; display: flex; justify-content: space-around; align-items: center; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #999; font-size: 12px; gap: 4px; cursor: pointer; text-decoration: none; }
+        .nav-item.active { color: #ff575c; }
+        .nav-icon { font-size: 22px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">Promotion</div>
+        
+        <div class="promo-banner">
+            <h2 id="totalCommission">₹0.00</h2>
+            <p>Total Commission Earned</p>
+        </div>
+
+        <div class="card">
+            <h3>Invite Friends & Earn</h3>
+            <div class="invite-section">
+                <div style="font-size: 12px; color: #666;">Your Invite Code</div>
+                <div class="invite-code" id="myInviteCode">LOADING...</div>
+                <div class="invite-link" id="myInviteLink">...</div>
+                <button class="btn-copy" onclick="copyLink()">Copy Invite Link</button>
+            </div>
+
+            <div class="commission-grid">
+                <div class="comm-box">
+                    <div class="comm-title">Level 1 Comm.</div>
+                    <div class="comm-amount" id="l1Comm">₹0.00</div>
+                </div>
+                <div class="comm-box">
+                    <div class="comm-title">Level 2 Comm.</div>
+                    <div class="comm-amount" id="l2Comm">₹0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card rules-box">
+            <h4>📈 How it works</h4>
+            <ul>
+                <li>Share your invite link with friends.</li>
+                <li>When they sign up and place a bet, you instantly get <b>1% commission (Level 1)</b>.</li>
+                <li>If they invite someone else, you get <b>0.5% commission (Level 2)</b> on those bets too!</li>
+                <li>Commissions are added straight to your Wallet balance.</li>
+            </ul>
+        </div>
+
+        <div class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">🏠</span><span>Home</span>
+            </a>
+            <div class="nav-item">
+                <span class="nav-icon">📊</span><span>Activity</span>
+            </div>
+            <div class="nav-item active">
+                <span class="nav-icon">🎁</span><span>Promotion</span>
+            </div>
+            <div class="nav-item" onclick="logoutUser()">
+                <span class="nav-icon">👤</span><span>Log Out</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const userEmail = localStorage.getItem('loggedInEmail');
+
+        window.onload = async () => {
+            if (!userEmail) {
+                window.location.href = 'index.html';
+                return;
+            }
+            try {
+                const response = await fetch(`/api/user/${userEmail}`);
+                const data = await response.json();
+                if (response.status === 200) {
+                    const l1 = data.level1Commission || 0;
+                    const l2 = data.level2Commission || 0;
+                    const total = l1 + l2;
+
+                    document.getElementById('totalCommission').innerText = `₹${total.toFixed(2)}`;
+                    document.getElementById('l1Comm').innerText = `₹${l1.toFixed(2)}`;
+                    document.getElementById('l2Comm').innerText = `₹${l2.toFixed(2)}`;
+                    
+                    document.getElementById('myInviteCode').innerText = data.inviteCode || 'N/A';
+                    
+                    const origin = window.location.origin;
+                    document.getElementById('myInviteLink').innerText = `${origin}/index.html?ref=${data.inviteCode}`;
+                }
+            } catch (error) {
+                console.log("Error fetching data", error);
+            }
+        };
+
+        function copyLink() {
+            const link = document.getElementById('myInviteLink').innerText;
+            navigator.clipboard.writeText(link).then(() => {
+                alert("Invite link copied to clipboard!");
+            }).catch(() => {
+                // Fallback
+                const tempInput = document.createElement("input");
+                tempInput.value = link;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempInput);
+                alert("Invite link copied!");
+            });
+        }
+
+        function logoutUser() {
+            localStorage.removeItem('loggedInEmail');
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

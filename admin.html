@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel</title>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #fff; display: flex; height: 100vh; }
+        .sidebar { width: 250px; background: #16213e; padding: 20px; display: flex; flex-direction: column; }
+        .sidebar h2 { color: #e94560; text-align: center; margin-bottom: 30px; }
+        .nav-btn { background: transparent; color: #fff; border: none; padding: 15px; text-align: left; font-size: 16px; cursor: pointer; border-radius: 5px; margin-bottom: 10px; transition: 0.3s; }
+        .nav-btn:hover, .nav-btn.active { background: #0f3460; }
+        .nav-btn.logout { margin-top: auto; background: #e94560; text-align: center; }
+        
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        .stat-cards { display: flex; gap: 20px; margin-bottom: 30px; flex-wrap: wrap; }
+        .card { background: #0f3460; padding: 20px; border-radius: 10px; flex: 1; min-width: 200px; text-align: center; }
+        .card h3 { margin: 0 0 10px 0; color: #a4b0be; font-size: 14px; text-transform: uppercase; }
+        .card .value { font-size: 32px; font-weight: bold; color: #2ed573; }
+        
+        table { width: 100%; border-collapse: collapse; background: #0f3460; border-radius: 10px; overflow: hidden; margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #1a1a2e; }
+        th { background: #16213e; color: #a4b0be; }
+        
+        .btn { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; margin-right: 5px; margin-bottom: 5px; }
+        .btn-approve { background: #2ed573; }
+        .btn-reject { background: #ff4757; }
+        .btn-block { background: #ff4757; }
+        .btn-unblock { background: #2ed573; }
+        .btn-edit { background: #ffa502; }
+        
+        /* Modal for user balance update */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; }
+        .modal-content { background: #16213e; padding: 25px; border-radius: 10px; width: 350px; text-align: center; }
+        .modal input { width: 100%; padding: 10px; margin: 15px 0; border-radius: 5px; border: none; }
+        .modal .flex-btns { display: flex; gap: 10px; }
+        .modal .flex-btns button { flex: 1; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <button class="nav-btn active" onclick="showSection('dashboard', this)">📊 Dashboard</button>
+        <button class="nav-btn" onclick="showSection('gamecontrol', this)">🎮 Game Control</button>
+        <button class="nav-btn" onclick="showSection('deposits', this)">⬇️ Deposits</button>
+        <button class="nav-btn" onclick="showSection('withdrawals', this)">💸 Withdrawals</button>
+        <button class="nav-btn" onclick="showSection('users', this)">👥 Users</button>
+        <button class="nav-btn logout" onclick="logoutAdmin()">🚪 Logout</button>
+    </div>
+
+    <div class="main-content">
+        <div id="dashboard" class="section active">
+            <h2>Platform Overview</h2>
+            <div class="stat-cards">
+                <div class="card">
+                    <h3>Total Profit (Treasury)</h3>
+                    <div class="value" id="treasuryAmount">₹0.00</div>
+                </div>
+                <div class="card">
+                    <h3>Total Users</h3>
+                    <div class="value" id="totalUsersCount">0</div>
+                </div>
+                <div class="card">
+                    <h3>Pending Withdrawals</h3>
+                    <div class="value" id="pendingWithdrawalsCount">0</div>
+                </div>
+                <div class="card">
+                    <h3>Pending Deposits</h3>
+                    <div class="value" id="pendingDepositsCount">0</div>
+                </div>
+            </div>
+            <button class="btn btn-approve" onclick="fetchStats()">🔄 Refresh Data</button>
+        </div>
+
+        <div id="gamecontrol" class="section">
+            <h2>Game Control (Rigging)</h2>
+            <div style="background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                <h3>Force Next Period Outcome</h3>
+                <p style="color:#a4b0be; font-size: 14px;">Warning: This guarantees the outcome for the NEXT generated period for the selected game type. It resets to normal after one use.</p>
+                <div style="display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap;">
+                    <select id="rigGameType" style="padding: 10px; border-radius: 5px; border:none; outline:none;">
+                        <option value="30s">30 Seconds Game</option>
+                        <option value="1m">1 Minute Game</option>
+                        <option value="3m">3 Minutes Game</option>
+                        <option value="5m">5 Minutes Game</option>
+                    </select>
+                    <select id="rigOutcome" style="padding: 10px; border-radius: 5px; border:none; outline:none;">
+                        <option value="None">Normal (Cancel Rigging)</option>
+                        <optgroup label="Colors">
+                            <option value="Green">Green</option>
+                            <option value="Red">Red</option>
+                            <option value="Violet">Violet</option>
+                        </optgroup>
+                        <optgroup label="Sizes">
+                            <option value="Big">Big</option>
+                            <option value="Small">Small</option>
+                        </optgroup>
+                        <optgroup label="Exact Numbers">
+                            <option value="0">0 (Red/Violet)</option>
+                            <option value="1">1 (Green)</option>
+                            <option value="2">2 (Red)</option>
+                            <option value="3">3 (Green)</option>
+                            <option value="4">4 (Red)</option>
+                            <option value="5">5 (Green/Violet)</option>
+                            <option value="6">6 (Red)</option>
+                            <option value="7">7 (Green)</option>
+                            <option value="8">8 (Red)</option>
+                            <option value="9">9 (Green)</option>
+                        </optgroup>
+                    </select>
+                    <button class="btn btn-approve" onclick="setForcedResult()">Set Outcome</button>
+                </div>
+            </div>
+            <h3>Active Overrides</h3>
+            <div id="activeOverrides" style="color: #2ed573; font-weight: bold; background: #0f3460; padding: 15px; border-radius: 10px;">Loading...</div>
+        </div>
+
+        <div id="deposits" class="section">
+            <h2>Pending Deposits</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>User Email</th>
+                        <th>Amount</th>
+                        <th>UTR No.</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="depositsTableBody">
+                    <!-- Rows will be injected here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="withdrawals" class="section">
+            <h2>Pending Withdrawals</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>User Email</th>
+                        <th>Amount</th>
+                        <th>Bank/UPI (UTR)</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="withdrawalsTableBody">
+                    <!-- Rows will be injected here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="users" class="section">
+            <h2>User Management</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Wallet</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <!-- Rows will be injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Edit Balance Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h3 id="editModalTitle">Update Balance</h3>
+            <input type="number" id="editAmount" placeholder="Enter Amount" required>
+            <div class="flex-btns">
+                <button class="btn btn-approve" onclick="updateBalance('add_balance')">Add</button>
+                <button class="btn btn-reject" onclick="updateBalance('deduct_balance')">Deduct</button>
+                <button class="btn" style="background:#747d8c;" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'index.html';
+
+        let selectedUserEmail = '';
+
+        function showSection(id, btnElement) {
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            if(btnElement) btnElement.classList.add('active');
+            
+            if(id === 'dashboard') fetchStats();
+            else if(id === 'withdrawals') fetchStats(); 
+            else if(id === 'deposits') fetchStats(); 
+            else if(id === 'users') fetchUsers();
+            else if(id === 'gamecontrol') fetchActiveOverrides();
+        }
+
+        async function fetchActiveOverrides() {
+            try {
+                const res = await fetch('/api/admin/game/forced-results', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                let html = '<ul>';
+                for(const [mode, outcome] of Object.entries(data)) {
+                    html += `<li>${mode} Game: ${outcome ? outcome : 'Normal (No override)'}</li>`;
+                }
+                html += '</ul>';
+                document.getElementById('activeOverrides').innerHTML = html;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function setForcedResult() {
+            const gameType = document.getElementById('rigGameType').value;
+            const outcome = document.getElementById('rigOutcome').value;
+            
+            try {
+                const res = await fetch('/api/admin/game/force-result', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ gameType, outcome })
+                });
+                const data = await res.json();
+                alert(data.message);
+                fetchActiveOverrides();
+            } catch (err) {
+                alert('Error setting forced result');
+            }
+        }
+
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/admin/stats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('treasuryAmount').innerText = `₹${(data.treasuryBalance || 0).toFixed(2)}`;
+                    document.getElementById('totalUsersCount').innerText = data.totalUsers || 0;
+                    document.getElementById('pendingWithdrawalsCount').innerText = data.pendingWithdrawals ? data.pendingWithdrawals.length : 0;
+                    
+                    const tbody = document.getElementById('withdrawalsTableBody');
+                    tbody.innerHTML = '';
+                    if(data.pendingWithdrawals) {
+                        data.pendingWithdrawals.forEach(tx => {
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td>${tx.email}</td>
+                                    <td>₹${tx.amount}</td>
+                                    <td>${tx.utr || 'N/A'}</td>
+                                    <td>${new Date(tx.date).toLocaleString()}</td>
+                                    <td>
+                                        <button class="btn btn-approve" onclick="processWithdrawal('${tx._id}', 'approve')">Approve</button>
+                                        <button class="btn btn-reject" onclick="processWithdrawal('${tx._id}', 'reject')">Reject</button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    
+                    document.getElementById('pendingDepositsCount').innerText = data.pendingDeposits ? data.pendingDeposits.length : 0;
+                    const depBody = document.getElementById('depositsTableBody');
+                    depBody.innerHTML = '';
+                    if(data.pendingDeposits) {
+                        data.pendingDeposits.forEach(tx => {
+                            depBody.innerHTML += `
+                                <tr>
+                                    <td>${tx.email}</td>
+                                    <td>₹${tx.amount}</td>
+                                    <td>${tx.utr || 'N/A'}</td>
+                                    <td>${new Date(tx.date).toLocaleString()}</td>
+                                    <td>
+                                        <button class="btn btn-approve" onclick="processDeposit('${tx._id}', 'approve')">Approve</button>
+                                        <button class="btn btn-reject" onclick="processDeposit('${tx._id}', 'reject')">Reject</button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                } else {
+                    alert("Access Denied: " + data.message);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function processWithdrawal(transactionId, action) {
+            if(!confirm(`Are you sure you want to ${action} this withdrawal?`)) return;
+            try {
+                const res = await fetch('/api/admin/withdraw/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ transactionId, action })
+                });
+                const data = await res.json();
+                alert(data.message);
+                fetchStats();
+            } catch (err) {
+                alert("Error processing request.");
+            }
+        }
+
+        async function processDeposit(transactionId, action) {
+            if(!confirm(`Are you sure you want to ${action} this deposit?`)) return;
+            try {
+                const res = await fetch('/api/admin/deposit/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ transactionId, action })
+                });
+                const data = await res.json();
+                alert(data.message);
+                fetchStats();
+            } catch (err) {
+                alert("Error processing request.");
+            }
+        }
+
+        async function fetchUsers() {
+            try {
+                const res = await fetch('/api/admin/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const users = await res.json();
+                if(res.ok) {
+                    const tbody = document.getElementById('usersTableBody');
+                    tbody.innerHTML = '';
+                    users.forEach(u => {
+                        const isBlocked = u.status === 'blocked';
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${u.username}</td>
+                                <td>${u.email}</td>
+                                <td>₹${u.walletBalance.toFixed(2)}</td>
+                                <td style="color:${isBlocked ? '#ff4757' : '#2ed573'}">${u.status ? u.status.toUpperCase() : 'ACTIVE'}</td>
+                                <td>
+                                    <button class="btn btn-edit" onclick="openModal('${u.email}')">± Balance</button>
+                                    <button class="btn ${isBlocked ? 'btn-unblock' : 'btn-block'}" 
+                                        onclick="updateUserStatus('${u.email}', '${isBlocked ? 'unblock' : 'block'}')">
+                                        ${isBlocked ? 'Unblock' : 'Block'}
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function updateUserStatus(email, action) {
+            if(!confirm(`Are you sure you want to ${action} user: ${email}?`)) return;
+            try {
+                const res = await fetch('/api/admin/user/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ email, action })
+                });
+                const data = await res.json();
+                alert(data.message);
+                fetchUsers();
+            } catch (err) {
+                alert("Error updating user.");
+            }
+        }
+
+        function openModal(email) {
+            selectedUserEmail = email;
+            document.getElementById('editModalTitle').innerText = `Update Balance for ${email}`;
+            document.getElementById('editAmount').value = '';
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+            selectedUserEmail = '';
+        }
+
+        async function updateBalance(action) {
+            const amount = document.getElementById('editAmount').value;
+            if(!amount || amount <= 0) return alert("Enter a valid amount!");
+            
+            try {
+                const res = await fetch('/api/admin/user/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ email: selectedUserEmail, action, amount })
+                });
+                const data = await res.json();
+                alert(data.message);
+                closeModal();
+                fetchUsers();
+            } catch (err) {
+                alert("Error updating balance.");
+            }
+        }
+
+        function logoutAdmin() {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html';
+        }
+
+        fetchStats();
+    </script>
+</body>
+</html>
