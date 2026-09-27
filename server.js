@@ -793,6 +793,14 @@ async function processRound(gameType, period) {
             }
             await bet.save();
         }
+
+        // Rolling History: Keep only last 500 periods (50 pages) to prevent infinite growth & UI stuck
+        const cutoffPeriod = period - 500;
+        if (cutoffPeriod > 0) {
+            await Result.deleteMany({ gameType: gameType, period: { $lte: cutoffPeriod } }).catch(e => console.log("Cleanup error:", e));
+            await Bet.deleteMany({ gameType: gameType, period: { $lte: cutoffPeriod } }).catch(e => console.log("Cleanup error:", e));
+        }
+
         io.emit('roundComplete', { gameType });
     } catch (error) {
         console.error(`Round processing error for ${gameType}:`, error);
