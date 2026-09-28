@@ -341,13 +341,13 @@
         </div>
     </div>
 
-    <!-- SOCKET.IO CDN -->
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- SOCKET.IO local path to avoid mobile network/adblocker blocks -->
+    <script src="/socket.io/socket.io.js"></script>
 
     <script>
         const userEmail = localStorage.getItem('loggedInEmail');
         const token = localStorage.getItem('token');
-        const socket = io('');
+        const socket = (typeof io !== 'undefined') ? io('') : { on: () => {}, emit: () => {} };
 
         let currentGameType = '30s';
         let currentHistoryTab = 'global';
@@ -361,9 +361,16 @@
             isMuted: false,
             init() {
                 if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        try {
+                            this.ctx = new AudioCtx();
+                        } catch(e) { console.error("AudioContext init failed", e); }
+                    }
                 }
-                if (this.ctx.state === 'suspended' && !this.isMuted) this.ctx.resume();
+                if (this.ctx && this.ctx.state === 'suspended' && !this.isMuted) {
+                    try { this.ctx.resume(); } catch(e) {}
+                }
             },
             toggleMute() {
                 this.isMuted = !this.isMuted;
@@ -379,16 +386,18 @@
             },
             playTone(freq, type, duration, vol=0.1) {
                 if(!this.ctx || this.isMuted) return;
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + duration);
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) { console.error("Audio playback error", e); }
             },
             tick() { this.init(); this.playTone(800, 'sine', 0.1, 0.05); },
             bet() { 
